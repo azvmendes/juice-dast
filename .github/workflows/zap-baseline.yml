@@ -1,0 +1,42 @@
+name: ZAP Baseline DAST (DEV)
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  zap-baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start DEV environment
+        run: |
+          docker compose -f docker/docker-compose.dev.yml up -d
+          sleep 15
+
+      - name: Run ZAP Baseline Scan
+        run: |
+          mkdir -p zap-wrk
+          chmod 777 zap-wrk
+          docker run \
+            --network="host" \
+            -v "$(pwd)/zap-wrk":/zap/wrk \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py \
+            -t "http://localhost:3000" \
+            -r "report_baseline.html" \
+            -J "alerts_baseline.json" \
+            -d \
+            -I
+
+      - name: Upload ZAP Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-results
+          path: zap-wrk/
+
+      - name: Stop DEV environment
+        if: always()
+        run: docker compose -f docker/docker-compose.dev.yml down

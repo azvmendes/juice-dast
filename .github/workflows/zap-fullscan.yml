@@ -1,0 +1,79 @@
+# Workflow ZAP Full Scan - Executado diariamente via cron no ambiente STAGING
+name: ZAP Full Scan DAST (STAGING)
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+
+jobs:
+  zap-fullscan:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout do código
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Login GHCR (para usar imagem do ZAP do GHCR)
+      - name: Login GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Sobe o ambiente STAGING com Docker Compose V2
+      - name: Start Juice Shop STAGING (Docker Compose)
+        run: |
+          docker compose -f docker/docker-compose.staging.yml up -d
+
+      # Aguarda o container estar pronto para receber conexões HTTP
+      - name: Wait for Juice Shop STAGING to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:3002 > /dev/null; then
+              echo "Juice Shop STAGING is up!"
+              exit 0
+            fi
+            echo "Waiting for Juice Shop STAGING..."
+            sleep 5
+          done
+          echo "Juice Shop STAGING did not start in time." >&2
+          exit 1
+
+      # Baixar imagem do ZAP do GHCR (Full Scan)
+      - name: Pull ZAP Image
+        run: docker pull ghcr.io/zaproxy/zaproxy:stable
+
+      # Executa o ZAP Full Scan apontando para o ambiente STAGING
+      - name: Run ZAP Full Scan on STAGING
+        run: |
+          docker run \
+            --network="host" \
+            -v "$(pwd)":/zap/wrk \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-full-scan.py \
+              -t "http://localhost:3002" \
+              -r "fullscan-report.html" \
+              -x "fullscan.xml" \
+              -J "alerts.json" \
+              -d \
+              -z "-session /zap/wrk/session.zap"
+
+      # Salva os artefatos gerados pelo ZAP (relatórios, logs, etc)
+      - name: Upload ZAP Artifacts (Full Scan)
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-fullscan-artifacts
+          path: |
+            fullscan-report.html
+            fullscan.xml
+            zap.log
+            alerts.json
+            session.zap
+
+      # (Opcional, mas recomendado) Derrubar ambiente STAGING ao final
+      - name: Stop STAGING environment
+        if: always()
+        run: |
+          docker compose -f docker/docker-compose.staging.yml down
