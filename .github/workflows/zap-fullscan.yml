@@ -49,9 +49,9 @@ jobs:
               -t http://localhost:3002 \
               -I \
               --hook=/zap/wrk/hooks/session-keeper.py \
-              -r fullscan-report.html \
-              -x fullscan-report.xml \
-              -J fullscan-report.json \
+              -r /zap/wrk/fullscan-report.html \
+              -x /zap/wrk/zap-fullscan-report.xml \
+              -J /zap/wrk/zap-fullscan-report.json \
               -z "
                 -config context.loadContext=/zap/wrk/juice.context
                 -config context.activeContext=\"Authentication Test\"
