@@ -42,24 +42,25 @@ jobs:
         run: |
           docker run \
             --network="host" \
-            -v $(pwd)/.zap:/zap/wrk/.zap \
-            -v $(pwd)/zap-wrk:/zap/wrk \
+            -v $(pwd)/.zap:/zap/wrk \
+            -v $(pwd)/zap-wrk:/zap/wrk/output \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-full-scan.py \
               -t http://localhost:3002 \
               -c juice.context \
               -I \
               --hook=/zap/wrk/hooks/session-keeper.py \
-              -r fullscan-report.html
-              -x zap-fullscan-report.xml \
-              -J zap-fullscan-report.json \
+              -r fullscan-report.html \
+              -x fullscan-report.xml \
+              -J fullscan-report.json \
               -z "
                 -config context.authenticate=true
                 -config context.activeContext=0
-                -config context.loadContext=/zap/wrk/.zap/juice.context
+                -config context.loadContext=/zap/wrk/juice.context
                 -config auth.username='${ZAP_USERNAME}'
                 -config auth.password='${ZAP_PASSWORD}'
               "
+
 
       # -------------------------------
       # 5. Upload dos relatórios como artifacts
