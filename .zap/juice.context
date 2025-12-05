@@ -2,9 +2,13 @@
 <configuration>
     <context>
         <name>Authentication Test</name>
-        <desc/>
+        <desc></desc>
         <inscope>true</inscope>
-        <incregexes>http://127.0.0.1:3000.*</incregexes>
+
+        <!-- ESCOPO -->
+        <incregexes>http://juice-shop-staging:3002.*</incregexes>
+
+        <!-- TECNOLOGIAS (mantidas do export original) -->
         <tech>
             <include>Db</include>
             <include>Db.CouchDB</include>
@@ -46,45 +50,68 @@
             <include>WS.IIS</include>
             <include>WS.Tomcat</include>
         </tech>
+
+        <!-- URL PARSERS -->
         <urlparser>
             <class>org.zaproxy.zap.model.StandardParameterParser</class>
             <config>{"kvps":"&amp;","kvs":"=","struct":[]}</config>
         </urlparser>
+
         <postparser>
             <class>org.zaproxy.zap.model.StandardParameterParser</class>
             <config>{"kvps":"&amp;","kvs":"=","struct":[]}</config>
         </postparser>
+
+        <!-- AUTENTICAÇÃO COM BROWSER + SESSION POLLING -->
         <authentication>
             <type>6</type>
             <strategy>POLL_URL</strategy>
-            <pollurl>http://127.0.0.1:3000/rest/user/whoami</pollurl>
-            <polldata/>
-            <pollheaders>referer: http://127.0.0.1:3000/
-</pollheaders>
+
+            <!-- Endpoint usado para renovar sessão automaticamente -->
+            <pollurl>http://juice-shop-staging:3002/rest/user/whoami</pollurl>
+
+            <pollheaders>
+                referer: http://juice-shop-staging:3002/
+            </pollheaders>
+
             <pollfreq>60</pollfreq>
             <pollunits>REQUESTS</pollunits>
+
+            <!-- Como ZAP detecta sessão válida -->
             <loggedin>\Qadmin@juice-sh.op\E</loggedin>
+
+            <!-- Login via navegador -->
             <browser>
-                <loginpageurl>http://127.0.0.1:3000/#/login</loginpageurl>
+                <loginpageurl>http://juice-shop-staging:3002/#/login</loginpageurl>
                 <browserid>firefox</browserid>
                 <loginpagewait>2</loginpagewait>
                 <stepdelay>0</stepdelay>
             </browser>
         </authentication>
+
+        <!-- USUÁRIO SEM SENHA (workflow injeta automaticamente) -->
         <users>
-            <user>53;true;YWRtaW5AanVpY2Utc2gub3A=;6;YWRtaW5AanVpY2Utc2gub3A=~YWRtaW4xMjM=~~30~6~U0hBMQ==~</user>
+            <user>0;true;admin@juice-sh.op;6;;;;</user>
         </users>
+
         <forceduser>-1</forceduser>
+
+        <!-- SESSION MANAGEMENT COM TOKEN DINÂMICO -->
         <session>
             <type>3</type>
-            <headers>QXV0aG9yaXphdGlvbg==:QmVhcmVyIHslanNvbjphdXRoZW50aWNhdGlvbi50b2tlbiV9</headers>
-            <headers>Y29va2ll:dG9rZW49eyVqc29uOmF1dGhlbnRpY2F0aW9uLnRva2VuJX0=</headers>
+
+            <!-- Headers que serão preenchidos automaticamente 
+                 com o valor real do token capturado via browser auth -->
+            <headers>Authorization: Bearer {{json:authentication.token}}</headers>
+            <headers>cookie: token={{json:authentication.token}}</headers>
         </session>
+
+        <!-- SEM AUTORIZATION ESPECÍFICA -->
         <authorization>
             <type>0</type>
             <basic>
-                <header/>
-                <body/>
+                <header></header>
+                <body></body>
                 <logic>AND</logic>
                 <code>-1</code>
             </basic>
