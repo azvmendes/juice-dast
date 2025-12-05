@@ -1,9 +1,13 @@
 name: ZAP Full Scan DAST (DEV)
 
 on:
-  workflow_dispatch:
-  pull_request:
-    branches: [ "main" ]
+  schedule:
+    # Executa todos os dias às 2h da manhã UTC (ajuste o horário se quiser)
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Mantém a opção de rodar manualmente
+  push:
+    branches:
+      - main
 
 jobs:
   zap-fullscan:
