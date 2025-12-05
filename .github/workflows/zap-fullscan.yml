@@ -29,8 +29,8 @@ jobs:
       # -------------------------------
       - name: Prepare ZAP working directory
         run: |
-          mkdir -p zap-wrk
-          chmod 777 zap-wrk
+          mkdir -p .zap zap-wrk
+          chmod -R 777 .zap zap-wrk
 
       # -------------------------------
       # 4. Executar ZAP FULL SCAN
