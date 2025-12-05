@@ -42,23 +42,26 @@ jobs:
         run: |
           docker run \
             --network="host" \
-            -v $(pwd)/.zap:/zap/wrk \
-            -v $(pwd)/zap-wrk:/zap/wrk/output \
+            -v $(pwd)/.zap:/zap/.zap \
+            -v $(pwd)/hooks:/zap/hooks \
+            -v $(pwd)/zap-wrk:/zap/wrk \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-full-scan.py \
               -t http://localhost:3002 \
-              -c /zap/wrk/.zap/juice.context \
+              -c /zap/.zap/juice.context \
               -I \
-              --hook=/zap/wrk/hooks/session-keeper.py \
+              --hook=/zap/hooks/session-keeper.py \
               -r /zap/wrk/fullscan-report.html \
               -x /zap/wrk/zap-fullscan-report.xml \
               -J /zap/wrk/zap-fullscan-report.json \
               -z "
-                -config context.loadContext=/zap/wrk/.zap/juice.context
-                -config context.activeContext=\"Authentication Test\"
+                -config context.loadContext=/zap/.zap/juice.context
+                -config context.activeContext=0
+                -config context.authenticate=true
                 -config auth.username='${ZAP_USERNAME}'
                 -config auth.password='${ZAP_PASSWORD}'
               "
+
 
 
       # -------------------------------
