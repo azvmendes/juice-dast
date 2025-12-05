@@ -1,4 +1,4 @@
-name: ZAP Full Scan DAST (DEV)
+name: ZAP Full Scan DAST (Staging)
 
 on:
   schedule:
