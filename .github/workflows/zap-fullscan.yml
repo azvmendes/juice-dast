@@ -1,29 +1,31 @@
-name: DAST - OWASP ZAP Full Scan
+name: ZAP Full Scan DAST (DEV)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - master
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  zap_full_scan:
+  zap-fullscan:
     runs-on: ubuntu-latest
 
-    env:
-      ZAP_USERNAME: ${{ secrets.JUICE_ADMIN_USER }}
-      ZAP_PASSWORD: ${{ secrets.JUICE_ADMIN_PASS }}
-
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Criar pasta de relatórios do ZAP
-        run: mkdir -p zap-wrk
-
-      - name: Executar OWASP ZAP Full Scan
+      - name: Start staging environment
         run: |
+          docker compose -f docker/docker-compose.staging.yml up -d
+          sleep 15
+
+      - name: Run ZAP Full Scan
+        env:
+          ZAP_USERNAME: ${{ secrets.JUICE_ADMIN_USER }}
+          ZAP_PASSWORD: ${{ secrets.JUICE_ADMIN_PASS }}
+        run: |
+          mkdir -p zap-wrk
+          chmod 777 zap-wrk
+
           docker run \
             --network="host" \
             -e ZAP_USERNAME="$ZAP_USERNAME" \
@@ -31,20 +33,21 @@ jobs:
             -v "$(pwd):/zap/wrk" \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-full-scan.py \
-            -t http://localhost:3002 \
-            -n .zap/juice.context \
-            -I \
-            --hook=.zap/hooks/session-keeper.py \
-            -r zap-wrk/fullscan-report.html \
-            -x zap-wrk/zap-fullscan-report.xml \
-            -J zap-wrk/zap-fullscan-report.json \
-            -z " -config context.authenticate=true -config context.activeContext=0 -config auth.username=${ZAP_USERNAME} -config auth.password=${ZAP_PASSWORD}"
+              -t "http://localhost:3002" \
+              -n ".zap/juice.context" \
+              -I \
+              --hook=".zap/hooks/session-keeper.py" \
+              -r "zap-wrk/fullscan-report.html" \
+              -x "zap-wrk/zap-fullscan-report.xml" \
+              -J "zap-wrk/zap-fullscan-report.json" \
+              -z " -config context.authenticate=true -config context.activeContext=0 -config auth.username=${ZAP_USERNAME} -config auth.password=${ZAP_PASSWORD}"
 
-      - name: Publicar relatórios ZAP como artefato
+      - name: Upload ZAP Full Scan Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: zap-fullscan-reports
-          path: |
-            zap-wrk/fullscan-report.html
-            zap-wrk/zap-fullscan-report.xml
-            zap-wrk/zap-fullscan-report.json
+          name: zap-fullscan-results
+          path: zap-wrk/
+
+      - name: Stop DEV environment
+        if: always()
+        run: docker compose -f docker/docker-compose.staging.yml down
