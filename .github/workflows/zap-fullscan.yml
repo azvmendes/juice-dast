@@ -1,79 +1,72 @@
-# Workflow ZAP Full Scan - Executado diariamente via cron no ambiente STAGING
-name: ZAP Full Scan DAST (STAGING)
+name: ZAP Full Scan
 
 on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  # Opcional: agendar scans periódicos
   schedule:
-    - cron: "0 3 * * *"
+    - cron: '0 3 * * *' # todos os dias às 03h UTC
 
 jobs:
-  zap-fullscan:
+  zap_full_scan:
     runs-on: ubuntu-latest
 
+    env:
+      ZAP_TARGET: "http://localhost:3002"
+      ZAP_USERNAME: ${{ secrets.JUICE_ADMIN_USER }}
+      ZAP_PASSWORD: ${{ secrets.JUICE_ADMIN_PASS }}
+
     steps:
-      # Checkout do código
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      # Login GHCR (para usar imagem do ZAP do GHCR)
-      - name: Login GHCR
-        uses: docker/login-action@v2
+      # Cria o script de autenticação para o ZAP (form-based)
+      - name: Create ZAP authentication script
+        run: |
+          cat <<EOF > juice-auth.js
+          function authenticate(context, user, password) {
+            var HttpRequestHeader = Java.type('org.parosproxy.paros.network.HttpRequestHeader');
+            var HttpHeader = Java.type('org.parosproxy.paros.network.HttpHeader');
+            var URI = Java.type('org.apache.commons.httpclient.URI');
+            var requestBody = 'email=' + encodeURIComponent(user) + '&password=' + encodeURIComponent(password);
+            var request = new org.parosproxy.paros.network.HttpMessage();
+            request.setRequestHeader(new HttpRequestHeader(
+              HttpRequestHeader.POST,
+              new URI('${{ env.ZAP_TARGET }}/rest/user/login', false),
+              HttpHeader.HTTP11));
+            request.setRequestBody(requestBody);
+            request.getRequestHeader().setContentLength(requestBody.length);
+            request.getRequestHeader().setHeader(HttpHeader.CONTENT_TYPE, 'application/x-www-form-urlencoded');
+            return request;
+          }
+          EOF
+
+      # Executa o ZAP Full Scan com autenticação
+      - name: ZAP Full Scan with Auth
+        uses: zaproxy/action-full-scan@v0.10.0
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          target: ${{ env.ZAP_TARGET }}
+          fail_action: false
+          allow_issue_writing: false
+          cmd_options: >
+            -z "-config replacer.full_list(0).description=authheader
+                 -config replacer.full_list(0).enabled=true
+                 -config replacer.full_list(0).matchtype=REQ_HEADER
+                 -config replacer.full_list(0).matchregex=false
+                 -config replacer.full_list(0).matchstring=Cookie
+                 -config replacer.full_list(0).replacement=
+                 -config replacer.full_list(0).initiators=16"
+            --context-file juice-context.context
+            --auth-script juice-auth.js
+            --auth-user ${{ env.ZAP_USERNAME }}
+            --auth-pass ${{ env.ZAP_PASSWORD }}
+            --ajaxSpider
 
-      # Sobe o ambiente STAGING com Docker Compose V2
-      - name: Start Juice Shop STAGING (Docker Compose)
-        run: |
-          docker compose -f docker/docker-compose.staging.yml up -d
-
-      # Aguarda o container estar pronto para receber conexões HTTP
-      - name: Wait for Juice Shop STAGING to be ready
-        run: |
-          for i in {1..30}; do
-            if curl -s http://localhost:3002 > /dev/null; then
-              echo "Juice Shop STAGING is up!"
-              exit 0
-            fi
-            echo "Waiting for Juice Shop STAGING..."
-            sleep 5
-          done
-          echo "Juice Shop STAGING did not start in time." >&2
-          exit 1
-
-      # Baixar imagem do ZAP do GHCR (Full Scan)
-      - name: Pull ZAP Image
-        run: docker pull ghcr.io/zaproxy/zaproxy:stable
-
-      # Executa o ZAP Full Scan apontando para o ambiente STAGING
-      - name: Run ZAP Full Scan on STAGING
-        run: |
-          docker run \
-            --network="host" \
-            -v "$(pwd)":/zap/wrk \
-            ghcr.io/zaproxy/zaproxy:stable \
-            zap-full-scan.py \
-              -t "http://localhost:3002" \
-              -r "fullscan-report.html" \
-              -x "fullscan.xml" \
-              -J "alerts.json" \
-              -d \
-              -z "-session /zap/wrk/session.zap"
-
-      # Salva os artefatos gerados pelo ZAP (relatórios, logs, etc)
-      - name: Upload ZAP Artifacts (Full Scan)
-        uses: actions/upload-artifact@v4
+      # Publica o relatório como artefato do workflow
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v3
         with:
-          name: zap-fullscan-artifacts
-          path: |
-            fullscan-report.html
-            fullscan.xml
-            zap.log
-            alerts.json
-            session.zap
-
-      # (Opcional, mas recomendado) Derrubar ambiente STAGING ao final
-      - name: Stop STAGING environment
-        if: always()
-        run: |
-          docker compose -f docker/docker-compose.staging.yml down
+          name: zap-report
+          path: report_html.html
