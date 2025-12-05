@@ -19,10 +19,10 @@ jobs:
       # -------------------------------
       # 2. Subir ambiente STAGING
       # -------------------------------
-      - name: Start Staging Environment
+      - name: Start Staging environment
         run: |
-          docker compose -f docker-compose.staging.yml up -d
-        timeout-minutes: 3
+          docker compose -f docker/docker-compose.staging.yml up -d
+          sleep 15
 
       # -------------------------------
       # 3. Criar diretório para relatórios
@@ -44,13 +44,13 @@ jobs:
             --network="host" \
             -v $(pwd)/.zap:/zap/wrk/.zap \
             -v $(pwd)/zap-wrk:/zap/wrk \
-            -t owasp/zap2docker-stable:latest \
+            ghcr.io/zaproxy/zaproxy:stable \
             zap-full-scan.py \
               -t http://localhost:3002 \
+              -c juice.context \
               -I \
-              -j \
-              -m 5 \
-              -r zap-fullscan-report.html \
+              --hook=/zap/wrk/hooks/session-keeper.py \
+              -r fullscan-report.html
               -x zap-fullscan-report.xml \
               -J zap-fullscan-report.json \
               -z "
@@ -76,4 +76,4 @@ jobs:
       - name: Shutdown Staging Environment
         if: always()
         run: |
-          docker compose -f docker-compose.staging.yml down
+          docker compose -f docker/docker-compose.staging.yml down
