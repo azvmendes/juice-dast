@@ -1,79 +1,50 @@
-name: ZAP Full Scan (Staging)
+name: DAST - OWASP ZAP Full Scan
 
 on:
-  schedule:
-    - cron: "0 3 * * *" # roda diariamente às 03:00 UTC
   workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
 
 jobs:
-  zap-full-scan:
+  zap_full_scan:
     runs-on: ubuntu-latest
 
+    env:
+      ZAP_USERNAME: ${{ secrets.JUICE_ADMIN_USER }}
+      ZAP_PASSWORD: ${{ secrets.JUICE_ADMIN_PASS }}
+
     steps:
-      # -------------------------------
-      # 1. Checkout do repositório
-      # -------------------------------
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # -------------------------------
-      # 2. Subir ambiente STAGING
-      # -------------------------------
-      - name: Start Staging environment
-        run: |
-          docker compose -f docker/docker-compose.staging.yml up -d
-          sleep 15
+      - name: Criar pasta de relatórios do ZAP
+        run: mkdir -p zap-wrk
 
-      # -------------------------------
-      # 3. Criar diretório para relatórios
-      # -------------------------------
-      - name: Prepare ZAP working directory
-        run: |
-          mkdir -p zap-wrk
-          chmod 777 zap-wrk
-
-      # -------------------------------
-      # 4. Executar ZAP FULL SCAN
-      # -------------------------------
-      - name: Run ZAP Full Scan
-        env:
-          ZAP_USERNAME: ${{ secrets.JUICE_ADMIN_USER }}
-          ZAP_PASSWORD: ${{ secrets.JUICE_ADMIN_PASS }}
+      - name: Executar OWASP ZAP Full Scan
         run: |
           docker run \
             --network="host" \
-            -v $(pwd)/.zap:/zap/wrk/.zap \
-            -v $(pwd)/zap-wrk:/zap/wrk \
+            -e ZAP_USERNAME="$ZAP_USERNAME" \
+            -e ZAP_PASSWORD="$ZAP_PASSWORD" \
+            -v "$(pwd):/zap/wrk" \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-full-scan.py \
-              -t http://localhost:3002 \
-              -c juice.context \
-              -I \
-              --hook=/zap/wrk/hooks/session-keeper.py \
-              -r fullscan-report.html
-              -x zap-fullscan-report.xml \
-              -J zap-fullscan-report.json \
-              -z "
-                -config context.authenticate=true
-                -config context.activeContext=0
-                -config context.loadContext=/.zap/juice.context
-                -config auth.username='${ZAP_USERNAME}'
-                -config auth.password='${ZAP_PASSWORD}'
-              "
+            -t http://localhost:3002 \
+            -c .zap/juice.context \
+            -I \
+            --hook=.zap/hooks/session-keeper.py \
+            -r zap-wrk/fullscan-report.html \
+            -x zap-wrk/zap-fullscan-report.xml \
+            -J zap-wrk/zap-fullscan-report.json \
+            -z " -config context.authenticate=true -config context.activeContext=0 -config context.loadContext=.zap/juice.context -config auth.username=${ZAP_USERNAME} -config auth.password=${ZAP_PASSWORD}"
 
-      # -------------------------------
-      # 5. Upload dos relatórios como artifacts
-      # -------------------------------
-      - name: Upload ZAP Artifacts
+      - name: Publicar relatórios ZAP como artefato
         uses: actions/upload-artifact@v4
         with:
-          name: zap-fullscan-results
-          path: zap-wrk/
-
-      # -------------------------------
-      # 6. Teardown do ambiente
-      # -------------------------------
-      - name: Shutdown Staging Environment
-        if: always()
-        run: |
-          docker compose -f docker/docker-compose.staging.yml down
+          name: zap-fullscan-reports
+          path: |
+            zap-wrk/fullscan-report.html
+            zap-wrk/zap-fullscan-report.xml
+            zap-wrk/zap-fullscan-report.json

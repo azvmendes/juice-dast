@@ -1,120 +1,114 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <configuration>
-    <context>
-        <name>Authentication Test</name>
-        <desc></desc>
-        <inscope>true</inscope>
+  <context>
+    <name>Authentication Test</name>
+    <desc></desc>
+    <inscope>true</inscope>
 
-        <!-- ESCOPO -->
-        <incregexes>http://juice-shop-staging:3002.*</incregexes>
+    <!-- ESCOPO -->
+    <incregexes>http://localhost:3002.*</incregexes>
 
-        <!-- TECNOLOGIAS (mantidas do export original) -->
-        <tech>
-            <include>Db</include>
-            <include>Db.CouchDB</include>
-            <include>Db.Firebird</include>
-            <include>Db.HypersonicSQL</include>
-            <include>Db.IBM DB2</include>
-            <include>Db.MariaDB</include>
-            <include>Db.Microsoft Access</include>
-            <include>Db.Microsoft SQL Server</include>
-            <include>Db.MongoDB</include>
-            <include>Db.MySQL</include>
-            <include>Db.Oracle</include>
-            <include>Db.PostgreSQL</include>
-            <include>Db.SAP MaxDB</include>
-            <include>Db.SQLite</include>
-            <include>Db.Sybase</include>
-            <include>Language</include>
-            <include>Language.ASP</include>
-            <include>Language.C</include>
-            <include>Language.JSP/Servlet</include>
-            <include>Language.Java</include>
-            <include>Language.Java.Spring</include>
-            <include>Language.JavaScript</include>
-            <include>Language.PHP</include>
-            <include>Language.Python</include>
-            <include>Language.Ruby</include>
-            <include>Language.XML</include>
-            <include>OS</include>
-            <include>OS.Linux</include>
-            <include>OS.MacOS</include>
-            <include>OS.Windows</include>
-            <include>Protocol</include>
-            <include>Protocol.LDAP</include>
-            <include>SCM</include>
-            <include>SCM.Git</include>
-            <include>SCM.SVN</include>
-            <include>WS</include>
-            <include>WS.Apache</include>
-            <include>WS.IIS</include>
-            <include>WS.Tomcat</include>
-        </tech>
+    <!-- TECNOLOGIAS (mantidas do export original) -->
+    <tech>
+      <include>Db</include>
+      <include>Db.CouchDB</include>
+      <include>Db.Firebird</include>
+      <include>Db.HypersonicSQL</include>
+      <include>Db.IBM DB2</include>
+      <include>Db.MariaDB</include>
+      <include>Db.Microsoft Access</include>
+      <include>Db.Microsoft SQL Server</include>
+      <include>Db.MongoDB</include>
+      <include>Db.MySQL</include>
+      <include>Db.Oracle</include>
+      <include>Db.PostgreSQL</include>
+      <include>Db.SAP MaxDB</include>
+      <include>Db.SQLite</include>
+      <include>Db.Sybase</include>
+      <include>Language</include>
+      <include>Language.ASP</include>
+      <include>Language.C</include>
+      <include>Language.JSP/Servlet</include>
+      <include>Language.Java</include>
+      <include>Language.Java.Spring</include>
+      <include>Language.JavaScript</include>
+      <include>Language.PHP</include>
+      <include>Language.Python</include>
+      <include>Language.Ruby</include>
+      <include>Language.XML</include>
+      <include>OS</include>
+      <include>OS.Linux</include>
+      <include>OS.MacOS</include>
+      <include>OS.Windows</include>
+      <include>Protocol</include>
+      <include>Protocol.LDAP</include>
+      <include>SCM</include>
+      <include>SCM.Git</include>
+      <include>SCM.SVN</include>
+      <include>WS</include>
+      <include>WS.Apache</include>
+      <include>WS.IIS</include>
+      <include>WS.Tomcat</include>
+    </tech>
 
-        <!-- URL PARSERS -->
-        <urlparser>
-            <class>org.zaproxy.zap.model.StandardParameterParser</class>
-            <config>{"kvps":"&amp;","kvs":"=","struct":[]}</config>
-        </urlparser>
+    <!-- URL PARSERS -->
+    <urlparser>
+      <class>org.zaproxy.zap.model.StandardParameterParser</class>
+      <config>{{"kvps":"&amp;","kvs":"=","struct":[]}}</config>
+    </urlparser>
+    <postparser>
+      <class>org.zaproxy.zap.model.StandardParameterParser</class>
+      <config>{{"kvps":"&amp;","kvs":"=","struct":[]}}</config>
+    </postparser>
 
-        <postparser>
-            <class>org.zaproxy.zap.model.StandardParameterParser</class>
-            <config>{"kvps":"&amp;","kvs":"=","struct":[]}</config>
-        </postparser>
+    <!-- AUTENTICAÇÃO COM BROWSER + SESSION POLLING -->
+    <authentication>
+      <type>6</type>
+      <strategy>POLL_URL</strategy>
 
-        <!-- AUTENTICAÇÃO COM BROWSER + SESSION POLLING -->
-        <authentication>
-            <type>6</type>
-            <strategy>POLL_URL</strategy>
+      <!-- Endpoint usado para renovar sessão automaticamente -->
+      <pollurl>http://localhost:3002/rest/user/whoami</pollurl>
+      <pollheaders>
+        referer: http://localhost:3002/
+      </pollheaders>
+      <pollfreq>60</pollfreq>
+      <pollunits>REQUESTS</pollunits>
 
-            <!-- Endpoint usado para renovar sessão automaticamente -->
-            <pollurl>http://juice-shop-staging:3002/rest/user/whoami</pollurl>
+      <!-- Como ZAP detecta sessão válida -->
+      <loggedin>\Qadmin@juice-sh.op\E</loggedin>
 
-            <pollheaders>
-                referer: http://juice-shop-staging:3002/
-            </pollheaders>
+      <!-- Login via navegador -->
+      <browser>
+        <loginpageurl>http://localhost:3002/#/login</loginpageurl>
+        <browserid>firefox</browserid>
+        <loginpagewait>2</loginpagewait>
+        <stepdelay>0</stepdelay>
+      </browser>
+    </authentication>
 
-            <pollfreq>60</pollfreq>
-            <pollunits>REQUESTS</pollunits>
+    <!-- USUÁRIO SEM SENHA (workflow injeta automaticamente) -->
+    <users>
+      <user>0;true;admin@juice-sh.op;6;;;;</user>
+    </users>
+    <forceduser>-1</forceduser>
 
-            <!-- Como ZAP detecta sessão válida -->
-            <loggedin>\Qadmin@juice-sh.op\E</loggedin>
+    <!-- SESSION MANAGEMENT COM TOKEN DINÂMICO -->
+    <session>
+      <type>3</type>
+      <!-- Headers que serão preenchidos automaticamente com o valor real do token capturado via browser auth -->
+      <headers>Authorization: Bearer {{{{json:authentication.token}}}}</headers>
+      <headers>cookie: token={{{{json:authentication.token}}}}</headers>
+    </session>
 
-            <!-- Login via navegador -->
-            <browser>
-                <loginpageurl>http://juice-shop-staging:3002/#/login</loginpageurl>
-                <browserid>firefox</browserid>
-                <loginpagewait>2</loginpagewait>
-                <stepdelay>0</stepdelay>
-            </browser>
-        </authentication>
-
-        <!-- USUÁRIO SEM SENHA (workflow injeta automaticamente) -->
-        <users>
-            <user>0;true;admin@juice-sh.op;6;;;;</user>
-        </users>
-
-        <forceduser>-1</forceduser>
-
-        <!-- SESSION MANAGEMENT COM TOKEN DINÂMICO -->
-        <session>
-            <type>3</type>
-
-            <!-- Headers que serão preenchidos automaticamente 
-                 com o valor real do token capturado via browser auth -->
-            <headers>Authorization: Bearer {{json:authentication.token}}</headers>
-            <headers>cookie: token={{json:authentication.token}}</headers>
-        </session>
-
-        <!-- SEM AUTORIZATION ESPECÍFICA -->
-        <authorization>
-            <type>0</type>
-            <basic>
-                <header></header>
-                <body></body>
-                <logic>AND</logic>
-                <code>-1</code>
-            </basic>
-        </authorization>
-    </context>
+    <!-- SEM AUTORIZATION ESPECÍFICA -->
+    <authorization>
+      <type>0</type>
+      <basic>
+        <header></header>
+        <body></body>
+        <logic>AND</logic>
+        <code>-1</code>
+      </basic>
+    </authorization>
+  </context>
 </configuration>
