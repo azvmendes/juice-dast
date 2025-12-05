@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Cria o script de autenticação para o ZAP (form-based)
       - name: Create ZAP authentication script
@@ -65,8 +65,8 @@ jobs:
             --ajaxSpider
 
       # Publica o relatório como artefato do workflow
-      - name: Upload ZAP Report
-        uses: actions/upload-artifact@v3
+      - name: Upload ZAP Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: zap-report
-          path: report_html.html
+          name: zap-baseline-results
+          path: zap-wrk/
