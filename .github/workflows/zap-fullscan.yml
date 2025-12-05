@@ -21,7 +21,7 @@ jobs:
       # -------------------------------
       - name: Start Staging Environment
         run: |
-          docker-compose -f docker-compose.staging.yml up -d
+          docker compose -f docker-compose.staging.yml up -d
         timeout-minutes: 3
 
       # -------------------------------
@@ -76,4 +76,4 @@ jobs:
       - name: Shutdown Staging Environment
         if: always()
         run: |
-          docker-compose -f docker-compose.staging.yml down
+          docker compose -f docker-compose.staging.yml down
