@@ -48,7 +48,7 @@ jobs:
             ghcr.io/zaproxy/zaproxy:stable \
             zap-full-scan.py \
               -t http://localhost:3002 \
-              -c /zap/.zap/juice.context \
+              --context_file /zap/.zap/juice.context \
               -I \
               --hook=/zap/hooks/session-keeper.py \
               -r /zap/wrk/fullscan-report.html \
