@@ -47,13 +47,14 @@ jobs:
             ghcr.io/zaproxy/zaproxy:stable \
             zap-full-scan.py \
               -t http://localhost:3002 \
+              -c /zap/wrk/.zap/juice.context \
               -I \
               --hook=/zap/wrk/hooks/session-keeper.py \
               -r /zap/wrk/fullscan-report.html \
               -x /zap/wrk/zap-fullscan-report.xml \
               -J /zap/wrk/zap-fullscan-report.json \
               -z "
-                -config context.loadContext=/zap/wrk/juice.context
+                -config context.loadContext=/zap/wrk/.zap/juice.context
                 -config context.activeContext=\"Authentication Test\"
                 -config auth.username='${ZAP_USERNAME}'
                 -config auth.password='${ZAP_PASSWORD}'
